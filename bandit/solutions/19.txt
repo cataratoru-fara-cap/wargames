@@ -1,0 +1,2 @@
+ssh  bandit18@bandit.labs.overthewire.org -p2220 -t ls -al
+ssh bandit18@bandit.labs.overthewire.org -p 2220 -t cat readme 
